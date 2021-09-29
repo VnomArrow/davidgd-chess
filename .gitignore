@@ -1,1 +1,3 @@
 /target
+*debug/incremental*
+*debug/deps*

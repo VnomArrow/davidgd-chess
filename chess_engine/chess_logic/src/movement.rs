@@ -495,8 +495,8 @@ pub fn get_all_attacked_squares(enemy_color: u8, game:&mut GAME) -> [bool; 64] {
 
 fn draw_movement_board(board: [bool; 64]) {
     let mut rank  = 1;
-    for available in board {
-        if available {
+    for available in board.iter() {
+        if *available {
             print!("|{} ", available);
         } else if !available {
             print!("|{}", available);

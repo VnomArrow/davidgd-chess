@@ -146,8 +146,12 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
     println!("gameturn: {}", game.turn);
     let from_tile = algebraic_notation_to_memory_location(from_tile);
     let to_tile = algebraic_notation_to_memory_location(to_tile);
+    println!("{}", from_tile);
+    println!("{}", to_tile);
     let piece_to_move = game.board[from_tile];
     let mut if_valid_move = false;
+
+    println!("piece: {}", piece_to_move);
 
     if game.promoting == 100 {
         if_valid_move = true;
@@ -155,7 +159,11 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
     
     if_valid_move = piece_is_correct_color(game, piece_to_move, if_valid_move);
 
+    println!("correct color: {}", if_valid_move);
+
     if_valid_move = is_legal_move_for_piece(game, piece_to_move, from_tile, to_tile, if_valid_move);
+
+    println!("valid move: {}", if_valid_move);
 
     if if_valid_move {
         handle_un_passant_logic(game, piece_to_move, from_tile, to_tile);
@@ -382,8 +390,8 @@ pub fn init_game() -> GAME {
 // const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/6P/6p/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 // const STARTINGFEN: &str = "rnbqkbnr/8/8/6P/6p/8/8/RNBQKBNR w KQkq - 0 1";
 // const STARTINGFEN: &str = "r3k2r/8/8/8/8/7P/8/R3K2R w KQkq - 0 1";
-const STARTINGFEN: &str = "8/4PP/8/8/8/7P/5pp/8 w KQkq - 0 1";
-// const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+// const STARTINGFEN: &str = "8/4PP/8/8/8/7P/5pp/8 w KQkq - 0 1";
+const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /// # Testing FEN algorithm
 ///```
