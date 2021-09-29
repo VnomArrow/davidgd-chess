@@ -1,3 +1,9 @@
 /target
-*debug/incremental*
-*debug/deps*
+chess_engine/target/debug/
+chess_gui/target/debug/.cargo-lock
+chess_gui/target/debug/.fingerprint/
+chess_gui/target/debug/build/
+chess_gui/target/debug/deps/
+chess_gui/target/debug/gui
+chess_gui/target/debug/gui.d
+chess_gui/target/debug/incremental/
