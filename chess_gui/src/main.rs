@@ -14,6 +14,8 @@ fn main() {
         .build()
         .expect("aieee, could not create ggez context!");
 
+        ggez::graphics::set_window_title(&ctx, "Chess Graphical Interface");
+
     // Create an instance of your event handler.
     // Usually, you should provide it with the Context object to
     // use when setting your game up.
@@ -42,11 +44,14 @@ struct MyGame {
     game: chess_logic::GAME
 }
 
-pub fn get_square_from_mouse_pos(pos: ggez::mint::Point2<f32>) -> ggez::mint::Point2<u8> {
-    ggez::mint::Point2{
-        x: ((pos.x*8.0) / SCREEN_WIDTH) as u8,
-        y: ((pos.y*8.0) / SCREEN_HEIGHT) as u8,
+pub fn get_square_from_mouse_pos(pos: ggez::mint::Point2<f32>) -> Result<ggez::mint::Point2<u8>, String> {
+    if pos.x > 0.0 && pos.y > 0.0 && pos.x < SCREEN_WIDTH && pos.y < SCREEN_HEIGHT {
+        return Ok(ggez::mint::Point2{
+            x: ((pos.x*8.0) / SCREEN_WIDTH) as u8,
+            y: ((pos.y*8.0) / SCREEN_HEIGHT) as u8,
+        })
     }
+    return Err("Outside bounds".to_string());
 }
 
 impl MyGame {
@@ -91,9 +96,51 @@ impl MyGame {
         Ok(s)
     }
 
-    pub fn draw_chess_board(&mut self, board: [u8; 64], ctx: &mut Context) -> GameResult<()> {
+    pub fn get_board_piece_image(&mut self, piece: u8) -> Option<&graphics::Image> {
         use chess_logic::*;
+        let mut image: Option<&graphics::Image> = None;
+        if piece == 0 {
+            image = None;
+        } else if is_black_king(piece) {
+            image = Some(&self.black_king);
+        } else if is_black_queen(piece) {
+            image = Some(&self.black_queen);
+        } else if is_black_rook(piece) {
+            image = Some(&self.black_rook);
+        } else if is_black_bishop(piece) {
+            image = Some(&self.black_bishop);
+        } else if is_black_knight(piece) {
+            image = Some(&self.black_knight);
+        } else if is_black_pawn(piece) {
+            image = Some(&self.black_pawn);
+        } else if is_white_king(piece) {
+            image = Some(&self.white_king);
+        } else if is_white_queen(piece) {
+            image = Some(&self.white_queen);
+        } else if is_white_rook(piece) {
+            image = Some(&self.white_rook);
+        } else if is_white_bishop(piece) {
+            image = Some(&self.white_bishop);
+        } else if is_white_knight(piece) {
+            image = Some(&self.white_knight);
+        } else if is_white_pawn(piece) {
+            image = Some(&self.white_pawn);
+        }
+        return image;
+    }
+
+    pub fn draw_chess_board(&mut self, board: [u8; 64], ctx: &mut Context) -> GameResult<()> {
         let mut rank  = 0;
+        let mut grabbed_piece_pos: Option<ggez::mint::Point2<u8>> = None;
+        let mut grabbed_piece: Option<u8> = None;
+        if ggez::input::mouse::button_pressed(ctx, ggez::input::mouse::MouseButton::Left) 
+        || ggez::input::mouse::button_pressed(ctx, ggez::input::mouse::MouseButton::Right) {
+            let mouse_down_board_pos = get_square_from_mouse_pos(self.mouse_button_press_down.unwrap());
+            if mouse_down_board_pos.is_ok() {
+                grabbed_piece_pos = Some(mouse_down_board_pos.unwrap());
+            }
+        }
+
         for piece in board.iter() {
             let piece = *piece;
             let x = rank % 8;
@@ -116,49 +163,43 @@ impl MyGame {
                 .scale(scale),)?;
             }
 
-            let mut image: Option<&graphics::Image> = None;
-            if piece == 0 {
-                image = None;
-            } else if is_black_king(piece) {
-                image = Some(&self.black_king);
-            } else if is_black_queen(piece) {
-                image = Some(&self.black_queen);
-            } else if is_black_rook(piece) {
-                image = Some(&self.black_rook);
-            } else if is_black_bishop(piece) {
-                image = Some(&self.black_bishop);
-            } else if is_black_knight(piece) {
-                image = Some(&self.black_knight);
-            } else if is_black_pawn(piece) {
-                image = Some(&self.black_pawn);
-            } else if is_white_king(piece) {
-                image = Some(&self.white_king);
-            } else if is_white_queen(piece) {
-                image = Some(&self.white_queen);
-            } else if is_white_rook(piece) {
-                image = Some(&self.white_rook);
-            } else if is_white_bishop(piece) {
-                image = Some(&self.white_bishop);
-            } else if is_white_knight(piece) {
-                image = Some(&self.white_knight);
-            } else if is_white_pawn(piece) {
-                image = Some(&self.white_pawn);
+            if grabbed_piece_pos.is_some() 
+                && grabbed_piece_pos.unwrap().x == x 
+                && grabbed_piece_pos.unwrap().y == y {
+                grabbed_piece = Some(piece);
+                // Draw the piece later ontop of other pieces
             }
-             
+            else  {
+                let image: Option<&graphics::Image> = self.get_board_piece_image(piece);
+                if image.is_some() {
+                    let image = image.unwrap();
+                    let scale_factor = (SCREEN_WIDTH) / (image.dimensions().h*8.0);
+                    let scale = glam::Vec2::new(scale_factor, scale_factor);
+                    let size = image.dimensions().h * scale.x;
+                    let dst = glam::Vec2::new(size*x as f32, size*y as f32);
+                    graphics::draw(ctx, image, graphics::DrawParam::new()
+                        .dest(dst)
+                        .scale(scale),)?;
+                }
+            }
+
+            rank += 1;
+        } 
+        // Draw if player has grabbed a piece
+        if grabbed_piece_pos.is_some() && grabbed_piece.is_some() {
+            let image = self.get_board_piece_image(grabbed_piece.unwrap());
             if image.is_some() {
                 let image = image.unwrap();
                 let scale_factor = (SCREEN_WIDTH) / (image.dimensions().h*8.0);
                 let scale = glam::Vec2::new(scale_factor, scale_factor);
                 let size = image.dimensions().h * scale.x;
-                let dst = glam::Vec2::new(size*x as f32, size*y as f32);
+                let mouse_pos = ggez::input::mouse::position(ctx);
+                let dst = glam::Vec2::new(mouse_pos.x - (size*0.5), mouse_pos.y - (size*0.5));
                 graphics::draw(ctx, image, graphics::DrawParam::new()
                     .dest(dst)
                     .scale(scale),)?;
             }
-
-            
-            rank += 1;
-        } 
+        }
         return Ok(());
     }
 }
@@ -182,14 +223,13 @@ pub fn draw_rectangle(ctx: &mut Context, rect: Rect, color: Color) -> GameResult
 
 impl EventHandler<ggez::GameError> for MyGame {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
-        // Update code here...
         Ok(())
     }
 
     fn mouse_button_down_event(
         &mut self,
-        ctx: &mut Context,
-        button: MouseButton,
+        _ctx: &mut Context,
+        _button: MouseButton,
         x: f32,
         y: f32
     ) {
@@ -199,8 +239,8 @@ impl EventHandler<ggez::GameError> for MyGame {
 
     fn mouse_button_up_event(
         &mut self,
-        ctx: &mut Context,
-        button: MouseButton,
+        _ctx: &mut Context,
+        _button: MouseButton,
         x: f32,
         y: f32
     ) {
@@ -208,6 +248,12 @@ impl EventHandler<ggez::GameError> for MyGame {
 
         let mouse_up_board_pos = get_square_from_mouse_pos(mouse_up);
         let mouse_down_board_pos = get_square_from_mouse_pos(self.mouse_button_press_down.unwrap());
+        if mouse_up_board_pos.is_err() || mouse_down_board_pos.is_err() {
+            return;
+        }
+
+        let mouse_up_board_pos = mouse_up_board_pos.unwrap();
+        let mouse_down_board_pos = mouse_down_board_pos.unwrap();
         let pos_array = ['a', 'b','c','d','e','f','g','h',];
         let move_notation_mouse_up = pos_array[(mouse_up_board_pos.x) as usize].to_string() + (8-mouse_up_board_pos.y).to_string().as_str();
         let move_notation_mouse_down = pos_array[(mouse_down_board_pos.x) as usize].to_string() + (8-mouse_down_board_pos.y).to_string().as_str();
@@ -224,7 +270,7 @@ impl EventHandler<ggez::GameError> for MyGame {
         // Draw code here...
 
         let board = self.game.get_board();
-        self.draw_chess_board(board, ctx);
+        self.draw_chess_board(board, ctx)?;
 
         graphics::present(ctx)
     }
